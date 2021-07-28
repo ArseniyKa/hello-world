@@ -1,0 +1,199 @@
+#include <iostream>
+#include <conio.h>
+#include <fstream>
+using namespace std;
+
+#include <stdlib.h>  /// ïîðÿäîê!
+# include <glut.h>
+# include <math.h>
+
+
+	float T[10000]={};
+	float X[10000]={};
+	int	N=1000;
+	float Tmax=0, Tmin=0, Xmax=0, Xmin=0;  /// íåçàâèñèìûå ïåðåìåííûå, ÷òîáû ìîæíî áûëî ñâîáîäíî ìåíÿòü çíà÷åíèÿ â main() è ýòî îòðàæàëîñü â äðóãèõ ôóíêöèÿõ
+
+	////////////////////////////////////îñíîâíàÿ ôóíêöÿ//////////////////////
+					void Display ()  //ðèñóåò ëèíèè
+					{
+						glClear(GL_COLOR_BUFFER_BIT);
+						//glBegin(GL_POINTS);  // äëÿ òî÷êè îáÿçàòåëüíî begin end
+						//glColor3f(1, 0, 0);
+					 //   glVertex2f(0, -0.3);
+						//	glColor3f(1, 0, 0);
+					 //   glVertex2f(0, 0.3);
+						glColor3f(0, 0, 0);
+							glLineWidth(1);
+						glBegin(GL_LINES);
+		
+						glVertex2f(Tmin-2, 0);   /// äâå òî÷êè äàþò ëèíèþ
+						glVertex2f(Tmax+2, 0);
+
+						 for( int i=Tmin-2; i<=Tmax+2; i+=2)
+						 { glVertex2f (i, 0.2);   glVertex2f(i, -0.2); }  // ãðàäóèðîâêà
+
+						glEnd();
+
+
+						glBegin(GL_LINES);
+						glVertex2f(0, Xmin-2);
+						glVertex2f(0, Xmax+1);
+						 for( int i=Xmin-2; i<=Xmax+2; i+=1)
+						 { glVertex2f (0.2,i);   glVertex2f(-0.2, i); }  // ãðàäóèðîâêà
+
+						glEnd();
+
+	// ïîäïèñü êîîðäèíàò
+    char str[20];
+	
+	for( int i=Xmin-2; i<=Xmax+2; i++)
+	{    
+		 _gcvt( float(i), 2, str);   // öèôðà 2 îçíà÷àåò ÷òî ìîãóò áûòü äåñÿòè÷íûå öèôðû,  Ôóíêöèÿ gcvt() ïðåîáðàçóåò i â ñòðîêó äëèíîé äâà õðàíÿùåéñÿ â ìàñññèâå str
+
+	       glRasterPos2f(-0.8, i-0.1); // âåðòèêàëü,  ïîëîæåíèå öèôðû îòíîñèòåëüíî ðèñêè
+        for( int i=0; i<strlen(str); i++)  // strlen() ñ÷èòàåò êîëè÷åñòâî ñòðîêè
+		{   glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, str[i]); }
+	}
+
+
+	for( int i=Tmin-2; i<=Tmax+2; i++)
+	{
+		 _gcvt( i, 2, str);
+
+        glRasterPos2f( i-0.1, -1.0f);
+        for( int i=0; i<strlen(str); i++)
+		{ glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, str[i]);} // øðèôò, òîæå âàæåí
+    }
+
+	    // ïîäïèñü êîîðäèíàòíûõ îñåé
+	
+		glRasterPos2f(22, -2);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, 'T');
+
+        glRasterPos2f(-1, 10.5);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, 'X');
+
+/////////
+
+						glLineWidth(3);
+						glBegin(GL_LINE_STRIP);
+						glColor3f(0, 0, 0);
+						//float x=0;
+						//				 for (int i = -500; i <= 500; i++)
+						//				 { 
+						//					 x=float(i)/500;
+						//			   float y = 0.4*sin(i*3.14/180);
+						//				glVertex2f(x, y);
+						//				 }
+
+							for (int i=0; i<N; i++)
+						{
+							glVertex2f(T[i], X[i]);
+						}
+
+						glEnd();
+						glFlush();
+					}
+///////////////////////////////////////////////////////////////////////////////////////////
+
+//Äâå ôóíêöèè ïî ñóòè õàðàêòåðèçóþò ñèñòåìó ïðîèçâîäíûõ
+float Func( float t, float v)
+{return v;}
+
+
+float Funcv( float t, float x,float v)
+//{return -10*x-v;}  // äëÿ ãàðìîíèêè ïðîñòî -x
+{ return -v-10*x; }
+//{return -x;}
+//{ return -exp(-t);}
+
+
+void main()
+{
+
+
+	float a, b;
+	float t,x, v;
+	float Xo, Vo;
+	float dt, h;
+
+	float K1, K2, K3, K4; 
+	float K1v, K2v, K3v, K4v;
+
+
+	
+	
+
+	ofstream fout ("RK.txt");
+	
+	Xo=10; Vo=-10;
+	//cout<<"Enter Xo "<<"\n";  
+	//cin>>Xo;
+	//cout<<"Enter Vo "<<"\n";
+	//cin>>Vo;
+	//cout<<"\n";
+
+	a=0;
+	b=20;
+
+	dt=(b-a)/N;
+	h=(b-a)/N;
+
+	t=a;
+	x=Xo;
+	v=Vo;
+
+	
+	for (int i=0; i<N; i++)
+	{   
+	// Ðàçáèâàåì äèôôóð 2 ïîðÿäêà íà ñèñòåìó äèôôóðîâ 1 ïîðÿäêà êàæäûé ñ 4 êîýôôèöèåíòàìè	
+		K1=Func(t,v)*dt;
+		K2=Func(t+dt/2, v+K1/2)*dt;
+		K3=Func(t+dt/2, v+K2/2)*dt;
+		K4=Func(t+dt, v+K3)*dt;
+
+		K1v=Funcv(t,x,v)*dt;
+		K2v=Funcv(t+dt/2, x+ K1v/2,v)*dt;
+		K3v=Funcv(t+ dt/2, x+ K2v/2,v)*dt;
+		K4v=Funcv(t+ dt, x+ K3v,v)*dt;
+
+		
+		   x= x + (K1 + 2*K2 + 2*K3 + K4)/6;
+		  v= v + (K1v+2*K2v+2*K3v+K4v)/6;
+		  
+
+        
+		  t=t+dt;
+		  v=v+ dt;
+		  if (abs(t-3)<0.002) cout<<"x= "<<x<<endl;
+
+		  //cout<<"t = "<<t<<"  "<<"x = "<<x<<"\n";
+		  { fout<<t<<"  "<<x<<"\n"; T[i]=t; X[i]=x;}
+	}
+
+	fout.close();
+					
+					for (int i=0; i<N; i++)
+					{ 
+					if (T[i]>Tmax) { Tmax=T[i];}
+					if (T[i]<Tmin) { Tmin=T[i]; }
+						
+					if (X[i]>Xmax) { Xmax=X[i]; }
+					if (X[i]<Xmin) { Xmin=X[i]; }
+					}
+					cout<<endl<<"T->"<<Tmax<<"  "<<Tmin<<endl;
+					cout<<"X->"<<Xmax<<"  "<<Xmin<<endl;
+
+	 glutInitWindowSize(480,480); 
+	glutCreateWindow("Runge Kutta method");
+
+	glOrtho(Tmin-1,Tmax+Tmax/8,  Xmin+Xmin/2,Xmax+Xmax/8,  1.0,0.0);  //// îòâå÷àåò çà ðàñïîëîæåíèå è ìàñøòàá
+	glutDisplayFunc(Display);
+	glClearColor(1,1, 1, 0);
+
+	glutMainLoop();
+	
+
+	cout<<"End";
+	getch();
+}
