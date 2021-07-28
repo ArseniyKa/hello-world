@@ -1,0 +1,459 @@
+
+#include <iostream>
+#include <conio.h>
+#include <fstream>
+#include <stdlib.h>  /// пор€док!
+# include <glut.h>
+# include <math.h>
+
+
+using  namespace std;
+
+
+float *** u ;
+float dx, dy, dt;
+
+	float Y[80]={};
+	float X[80]={};
+	float Value[80][80]={};
+	/*int	N=10000;*/
+	float Ymax=0, Ymin=0, Xmax=0, Xmin=0;  /// независимые переменные, чтобы можно было свободно мен€ть значени€ в main() и это отражалось в других функци€х
+	float Vmax=0, Vmin=0;
+
+int N=40,M=40, K=100;
+//N=M=30;
+//K=20;
+
+
+float Angle=0;
+int z=0;
+	void Timer (int)
+	{
+		//++Angle;
+		if (z<=100)
+	{
+			for (int i=0; i<M-1; i++)
+		{	{ X[i]=i*dx; Y[i]=i*dy;}		
+			for(int j=0; j<N-1; j++)
+		{	
+		   Value[i][j]= u[i][j][z];
+		}		
+		}
+			Vmax=Vmax+1.; Vmin=Vmin-1.; /*Xmax=Xmax+1; Xmin=Xmin-1; Ymax=Ymax+1; Ymin=Ymin-1*/;
+			z++;
+	}
+		/*else z=0;*/
+
+			/*MaxandMin();*/
+		
+			glRotatef(3, 0.0, 0.0, 1.0);
+
+			glutPostRedisplay(); // важно, обновл€ет
+	
+		
+			 glutTimerFunc(50, Timer, 0);
+	}
+
+	////////////////////////////////////основна€ функц€//////////////////////
+					void Display ()  //рисует линии
+					{ 
+						glClear(GL_COLOR_BUFFER_BIT);
+    glPushMatrix();
+ 
+						glColor3f(0, 0, 0);
+							glLineWidth(3);
+
+
+								glBegin(GL_LINES);  // помен€ли
+								glVertex3f(-Xmax-0.2, 0, 0);   /// две точки дают линию
+								glVertex3f(Xmax+0.2, 0, 0);
+
+								 for( int i=-Xmax-0.2; i<=Xmax+0.2; i+=10)
+								 { glVertex3f (i, 5, 5.0);   glVertex3f(i, -5, -5); }  // градуировка
+								glEnd();
+
+						glBegin(GL_LINES);		/// важно gl lines
+						glVertex3f(0, -Ymax-0.2, 0);   /// две точки дают линию
+						glVertex3f(0, Ymax+0.2, 0);
+
+						 for( int i=-Ymax-0.2; i<=Ymax+0.2; i+=10)
+						 { glVertex3f (5.0, i, 5);   glVertex3f(-5, i, -5); }  // градуировка
+						glEnd();
+
+
+						glBegin(GL_LINES);
+						glVertex3f(0,0, Vmin-0.2); /// две точки дают линию
+						glVertex3f(0,0, Vmax+0.2);
+
+						 for( int i=Vmin-0.2; i<=Vmax+0.2; i+=30)
+						 { glVertex3f (5, 5,i);   glVertex3f(-5, -5,i); }  // градуировка
+						glEnd();
+
+	// подпись координат
+    char str[20];
+	
+	 for( int i=-Ymax-0.2; i<=Ymax+0.2; i+=10)
+	{    
+		 _gcvt( float(i)/Ymax, 1, str);   // цифра 2 означает что могут быть дес€тичные цифры,  ‘ункци€ gcvt() преобразует i в строку длиной два хран€щейс€ в масссиве str
+
+	       glRasterPos3f(-8, i, -7); // вертикаль,  положение цифры относительно риски
+        for( int i=0; i<strlen(str); i++)  // strlen() считает количество строки
+		{   glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, str[i]); }
+	}
+
+
+	 for( int i=-Xmax-0.2; i<=Xmax+0.2; i+=10)
+	{
+		 _gcvt(float( i)/Xmax, 1, str);
+
+        glRasterPos3f( i,-8, -7); // расположение 
+        for( int i=0; i<strlen(str); i++)
+		{ glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, str[i]); } // шрифт, тоже важен
+    }
+
+	 	 for( int i=Vmin-0.2; i<=Vmax+0.2; i+=30)
+	{
+		 _gcvt(float( i)/Vmax*7.5, 1, str);
+
+        glRasterPos3f( -10,-7, i); // расположение 
+        for( int i=0; i<strlen(str); i++)
+		{ glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, str[i]); } // шрифт, тоже важен
+    }
+
+	  //glRasterPos3f( 1, 1, 1); // расположение 
+	  //glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, 7);
+
+/////////
+
+		    // подпись координатных осей
+	
+		glRasterPos3f(60, -2, 0);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, 'X');
+
+        glRasterPos3f(-1, 60, 0);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, 'Y');
+		glColor3f(0, 0, 1);
+        glRasterPos3f(-1, 0, 30+z);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, 'U');
+		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, '-');
+		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, '5');
+
+	glColor3f(1, 0, 0);
+	
+						glLineWidth(4);
+						for (int j=0; j<N-1; j++) {
+						glBegin(GL_LINE_STRIP);
+						/*glColor3f(float(j)/N, 0, 0);*/
+									
+							for (int i=0; i<N-1; i++)
+						{
+							glVertex3f(50*X[i], 50*Y[j], 125000*Value[i][j]);
+						}
+							glEnd();}
+						
+
+
+							for (int i=0; i<N-1; i++) {
+							glBegin(GL_LINE_STRIP);
+						/**glColor3f(1, 1, 1);*/
+
+					
+							for (int j=0; j<N-1; j++)							
+						{
+							//glVertex3f(X[i],Y[i], X[i]*Y[j]/*sin(i * j * 0.0001)*145*/);
+								glVertex3f(50*X[i], 50*Y[j], 125000*Value[i][j]);
+						}
+
+						glEnd();
+							}
+
+						   glPopMatrix();
+							/*glutSwapBuffers();*/
+						glFlush();
+					}
+///////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+/////C:\Users\PC\Documents\Visual Studio 2012\Projects\Thermal conductivity\Thermal conductivity
+
+float T;
+float A, B, C;
+
+//float dx, dy, dt;
+
+
+
+							float F (int i, int j, int k, float ***u, float g, char q )
+							{
+								double a = 0.0;
+							switch (q)
+							{
+							case '1':
+							a =  g/2* (  u[i][j+1][k] + u[i][j-1][k])      +     (1-g)*u[i][j][k]    +  /* sin(100000*(k+1)*dt)*/  0.5*dt*cos(3.14*j*dy)/**cos(10*3.14*i*dx)*/* exp ((k+1)* dt);
+
+							break;
+							case '2':
+							a = g/2* (  u[i+1][j][k+1] + u[i-1][j][k+1])      +     (1-g)*u[i][j][k+1]    +    /*sin(100000*(k+2)*dt)*/ 0.5*dt*cos(3.14*j*dy)/**cos(10*3.14*i*dx)*/* exp ((k+2)* dt);
+							break;
+							}
+							return a;
+							}
+//////////////////////////////////////// граничные услови€ 
+			void bounds (int k,  float ***u)
+			{
+									
+									
+
+									for (int j = 0; j < N; j++)
+									{
+									u[0][j][k+1 ] = u[1][j][k+1 ];
+									u[M -1][j][k +1] = /*u[M - 2][j][k + 1];*/0;
+									}
+
+											for (int i = 0; i < M; i++)
+											{
+											u[i][0][k+1] = u[i][1][k+1];
+											u[i][N-1][k+1] = u[i][N - 2][k+1];
+											}
+
+									
+			}
+////////////////////////////////////////////////////////////////////////////////////////////////
+		void progonka1 (int k, float g, float *a, float *b , float mu2, float kapa2,  float ***u)
+		{
+
+	
+				for(int j=1; j<N-1; j++)
+						{
+							for(int i=0; i<M-1; i++)
+						
+							{
+
+				  //  	a[0]=/*kapa2*/1;
+						//b[0]=/*mu2*/0;
+						/*for (int i=0; i<M-1; i++)*/
+
+						a[i+1]= B/(C-A * a[i]);
+
+						b[i+1]= (A*b[i]+ F(i,j,k,u, g,'1')  )/(C-A*a[i]);
+						/*cout<<" a  "<<a[i+1]<<endl;*/
+				
+							}
+					u[M - 1][j][k+1]	= (mu2 + b[N-1]*kapa2)/(1 - a[N-1]*kapa2);;
+
+
+													for (int i=M-1; i>1; i--)
+													{
+													u[i-1][j][k+1] = a[i] * u[i][j][k+1] + b[i];
+													/*cout<<" U "<<U[i]<<endl;*/
+													} 
+
+										
+						}
+
+
+																
+	
+		}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			void progonka2 (int k, float g, float *a, float *b , float mu2, float kapa2,  float ***u)
+			{
+
+				for(int i=1; i<M-1; i++)	
+							{
+								for(int j=0; j<N-1; j++)
+						
+								{ 
+
+							a[j+1]= B/(C-A * a[j]);
+
+							b[j+1]= (A*b[j]+ F(i,j,k,u, g,'2')  )/(C-A*a[j]);
+							/*cout<<" a  "<<a[i+1]<<endl;*/
+				
+								}
+						u[i][N-1][k+2]	 = (mu2 + b[N-1]*kapa2)/(1 - a[N-1]*kapa2);
+							/*cout<<" U  "<<U[N]<<endl;*/
+
+
+
+														for (int j=N-1; j>1; j--)
+														{
+														u[i][j-1][k+2] = a[j] * u[i][j][k+2] + b[j];
+														/*cout<<" U "<<U[i]<<endl;*/
+														} 
+										
+							}
+			}
+
+
+
+
+
+void main()
+{
+
+				/*float *** u ;*/
+
+
+ofstream fout("out.txt");
+ofstream foutx("x.txt");
+ofstream fouty("y.txt");
+
+//T=500.;
+T=1e-3;   ////// это означает в интервале [0;0.01]
+dx=1.0/(N-1);
+dy= 1.0/(M-1);
+dt=T/(K-1);
+
+
+
+float *dm, *sm, *dn, *sn;
+dm= new float [M];
+sm= new float [M];
+dn= new float [N];
+sn= new float [N];
+
+dm[0] = 1; sm[0] = 0;
+dn[0] = 1; sn[0] = 0;
+
+
+																u= new float **[M];
+															
+																for (int i=0; i<M; i++)
+																{
+																	u[i]= new float * [N];
+																	
+																	for (int j=0; j<N; j++)
+																		u[i][j] = new float [2*K];
+																}
+										
+
+				float gx=dt/(dx*dx);
+				float gy=dt/(dy*dy);
+
+A=B=gx/2;
+C=1+ gx;
+//cout<< A<< "  "<< B<<"  "<<C<<endl;
+
+
+
+
+////////////////////////////////////////////////////////////// initial
+			for (int i = 0; i < M; i++)
+			{
+				for (int j = 0; j < N; j++)
+					u[i][j][0] = /*cos(3 * dx * i) * sin(4 * dy * j);*/0;
+			}
+///////////////////////////////////////////////////////////////////
+
+			float mu2=0.;
+            float kapa2=1.;
+
+			float Kapa2=0.;
+			
+											for (int k=0; k<2*K-3; k+=2)
+											{ 
+												progonka1 ( k,   gy, dm,  sm ,  mu2,  kapa2, u);
+												 bounds ( k,  u);
+												
+												progonka2( k,   gx, dn,  sn ,  mu2,  Kapa2, u);
+												bounds ( k+1,  u);
+													/*cout<<u[0][0][k]<<endl;*/
+											}
+											
+
+
+
+	for (int i=0; i<M-1; i++)
+	{	{foutx<<i*dx<<endl; X[i]=i*dx; Y[i]=i*dy;}
+		
+		for(int j=0; j<N-1; j++)
+	{	if(!i) fouty<<j*dy<<endl;
+	  fout<<i*dx<<"   "<<j*dy<<"     " << u[i][j][5]<<endl; Value[i][j]= u[i][j][5];
+	}
+		
+	}
+
+																	
+
+
+
+		for (int j=0; j<N; j++)
+					for (int i=0; i<M; i++)
+					{ 
+					if (X[i]>Xmax) { Xmax=X[i];}
+					if (X[i]<Xmin) { Xmin=X[i]; }
+
+					if (Y[i]>Ymax) { Ymax=Y[i];}
+					if (Y[i]<Ymin) { Ymin=Y[i]; }
+						
+					if (Value[i][j]>Vmax) { Vmax=Value[i][j]; }
+					if (Value[i][j]<Vmin) { Vmin=Value[i][j]; }
+					}
+					cout<<endl<<"X->"<<Xmax<<"  "<<Xmin<<endl;
+					cout<<endl<<"Y->"<<Ymax<<"  "<<Ymin<<endl;
+					cout<<"V->"<<Vmax<<"  "<<Vmin<<endl;
+
+Xmin=Xmin*50; Xmax=Xmax*50; Ymin=Ymin*50; Ymax=Ymax*50; Vmin=Vmin*250000; Vmax=Vmax*250000; 
+
+		    //glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+	 glutInitWindowSize(1200,1200); 
+	glutCreateWindow("Thermal conductivity");
+	glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+	//glOrtho(Xmin-1,Xmax+Xmax/8,  Ymin+Ymin/2,Ymax+Ymax/8,  Vmin+Vmin/2,Vmax+Vmax/8);  //// отвечает за расположение и масштаб
+		glutDisplayFunc(Display);
+	glClearColor(1,1, 1, 1);
+
+ glFrustum(-10, 10, -10, 10, 10, 2000);  // задаЄт перспективу изображени€
+  glMatrixMode(GL_MODELVIEW);
+    glTranslatef(-7, -5, -180);
+////glRotatef(90, -225, 80, 90); // совпадает
+	//glRotatef(200, 120, -30, 1);
+ //glRotatef(180, 90 , 0, 1);
+	glRotatef(90, -225, 80, 90);
+	//glRotatef(360, 0, 0, 0);
+  /*glRotatef(1, 1 , -270, 1);*/
+ /*glRotatef(0, 0 , 0, 1);*/
+//	    glTranslatef(-45, -35, -120);
+////	glRotatef(-120, 8, 0, 0);// совпадает
+//	glRotatef(-50, 2, 0, 0);
+
+ glutTimerFunc(50, Timer, 0);
+	glutMainLoop();
+
+
+
+								for (int i=0; i<M; i++)
+				{
+						       for (int j=0; j<N; j++)
+							   {    delete[]  u[i][j]; }
+																		
+							    	delete [] u[i];
+				}
+									delete [] u;
+							    	delete []  dm, sm, dn, sn;
+fout.close();
+foutx.close();
+fouty.close();
+cout<<"end";
+getch();
+}
+
+
+
+
+
+
+
+
+
+
+
+			
+
+
+	
