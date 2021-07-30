@@ -1,2 +1,0 @@
-Hey all!
-I ll try to do git fetch
