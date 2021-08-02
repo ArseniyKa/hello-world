@@ -1,0 +1,124 @@
+# include <iostream>
+
+using namespace std;
+
+//template <typename X> X min (X &a, X &b)
+//{
+//	if (a<b)
+//		return a;
+//	else return b;
+//}
+//
+//
+//int main ()
+//{
+//	setlocale(LC_ALL, "ru");
+//
+//	char a ,b;
+//	cout<<"Введите число а:"<<endl;
+//	cin>>a;
+//	cout<<endl<<"Введите число b:"<<endl;
+//	cin>>b;
+//
+//	cout<<endl<<"Минимальное число: "<<min(a,b)<<endl;
+//
+//getch();
+//	return 0;
+//}
+
+					template<typename Y>	  class queue 
+								//class queue
+							{
+							
+								Y data;
+								queue * p;
+									public:
+
+							
+														//queue ()
+														//{
+														//	//data =0;
+														//	p=NULL;
+														//	
+														//}
+
+						/*									~queue ()
+														{
+															data =0;
+															delete n;
+														}*/
+								void push (Y &a);
+								void pop ();
+								//void cleaning ();
+								
+	
+							};
+
+	
+
+	
+queue<char> *first, *element, *last, *previous = NULL;
+
+//template <typename Y> queue<Y> :: push (Y &a)
+				template<typename Y> void queue<Y> :: push (Y &a)
+				{	
+					element = new queue;
+					if (!first) {  element->data = a;  first = element;  previous =element; }  ///важно чтобы было !first а не first = null
+					else
+					{
+						//n->next = sec;	
+						previous->p =element;  //этим мы сказали что первая стуктуа в очереди ссылается на вторую стутктуру и не важно кто это сказал какой указатель  f или еще кто то
+						previous=element;	
+						element->data = a;			
+					/*	n->p = en;		*/							
+						last = element;
+					}
+				}
+
+
+									template<typename Y>		 void queue<Y>:: pop ()
+									{
+	
+										//n = new queue;
+										while (first!=last) 
+										{
+											cout<<"Следующий элемент: "<<first->data<<endl;    /// мы нигде f->p не писали и не важно тут важно не названия f а то что ервый ссылается на предыдущй а тот на третий а
+											
+										first =first->p;
+									
+										}
+
+									}
+
+		//void queue :: cleaning ()
+		//{
+		//	while (en)
+		//		delete en;
+		//	en = n->p;
+		//}
+
+
+											int main ()
+
+											{
+
+												setlocale(LC_ALL, "ru");
+												queue <char> sample;
+												
+												char b ='1';
+												while (b!=0 && b!='0')
+												{
+													cin>>b;
+													sample.push(b);
+
+												}
+
+												sample.pop();
+
+												/*vv.cleaning();*/
+
+
+												//getch();
+												 system ("pause");
+												return 0;
+											}
