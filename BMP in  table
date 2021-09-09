@@ -1,0 +1,402 @@
+#include "Table.h"
+
+#include <fstream>
+#include <iomanip>
+#include <iterator>
+namespace bds {
+
+// TableIterator
+
+template <typename U, typename T>
+bool TableIterator<U, T>::operator!=(TableIterator<U, T> other) const {
+    return this->offset_ != other.offset_;
+}
+
+template <typename U, typename T>
+bool TableIterator<U, T>::operator==(TableIterator<U, T> other) const {
+    return this->offset_ == other.offset_;
+}
+
+template <typename U, typename T>
+TableIterator<U, T> &TableIterator<U, T>::operator++() {
+    Triplet offset(1, 0, 0);
+    if (pos_.x() + 1 == table_.bounds().x()) {
+        offset.setX(1 - table_.bounds().x());
+        offset.setY(1);
+        if (pos_.y() + 1 == table_.bounds().y()) {
+            offset.setY(1 - table_.bounds().y());
+            offset.setZ(1);
+        }
+    }
+    pos_ += offset;
+    ++offset_;
+    return *this;
+}
+
+template <typename U, typename T>
+const TableIterator<U, T>  // NOLINT
+TableIterator<U, T>::operator++(int) {
+    TableIterator<U, T> retval = *this;
+    ++(*this);
+    return retval;
+}
+
+template <typename U, typename T>
+T &TableIterator<U, T>::operator*() {
+    return table_[offset_];
+}
+
+template <typename U, typename T>
+Triplet TableIterator<U, T>::pos() const {
+    return pos_;
+}
+
+template <typename U, typename T>
+std::int64_t TableIterator<U, T>::offset() const {
+    return offset_;
+}
+
+// Table
+
+template <typename T>
+TableIterator<Table<T>, T> Table<T>::begin() {
+    return TableIterator<Table<T>, T>(*this, {0, 0, 0});
+}
+
+template <typename T>
+TableIterator<Table<T>, T> Table<T>::end() {
+    return TableIterator<Table<T>, T>(*this, {0, 0, bounds_.z()});
+}
+
+template <typename T>
+TableIterator<const Table<T>, const T> Table<T>::cbegin() const {
+    return TableIterator<const Table<T>, const T>(*this, {0, 0, 0});
+}
+
+template <typename T>
+TableIterator<const Table<T>, const T> Table<T>::cend() const {
+    return TableIterator<const Table<T>, const T>(*this, {0, 0, bounds_.z()});
+}
+
+template <typename T>
+const T *Table<T>::data() const {
+    return data_.data();
+}
+
+template <typename T>
+T *Table<T>::data() {
+    return data_.data();
+}
+
+template <typename T>
+const T &Table<T>::operator[](std::int64_t offset) const {
+    return data_[offset];
+}
+
+template <typename T>
+T &Table<T>::operator[](std::int64_t offset) {
+    return data_[offset];
+}
+
+template <typename T>
+const T &Table<T>::operator[](Triplet crd) const {
+    return data_[crd.x() + crd.y() * bounds_.x() +
+                 crd.z() * bounds_.y() * bounds_.x()];
+}
+
+template <typename T>
+T &Table<T>::operator[](Triplet crd) {
+    return data_[crd.x() + crd.y() * bounds_.x() +
+                 crd.z() * bounds_.y() * bounds_.x()];
+}
+
+template <typename T>
+Triplet Table<T>::bounds() const {
+    return bounds_;
+}
+
+template <typename T>
+std::int64_t Table<T>::size() const {
+    return size_;
+}
+
+template <typename T>
+bds::Triplet Table<T>::crd(std::int64_t offset) const {
+    const std::int64_t x_size = bounds_.x();
+    const std::int64_t y_size = bounds_.y();
+
+    const std::int64_t x = offset % x_size;
+    const std::int64_t y = offset / x_size % y_size;
+    const std::int64_t z = offset / x_size / y_size;
+    return bds::Triplet(x, y, z);
+}
+
+template <typename T>
+std::int64_t Table<T>::offset(bds::Triplet crd) const {
+    const std::int64_t x_size = bounds_.x();
+    const std::int64_t y_size = bounds_.y();
+    const std::int64_t offset =
+        crd.x() + crd.y() * x_size + crd.z() * x_size * y_size;
+    return offset;
+}
+
+template class Table<std::uint8_t>;
+template class TableIterator<Table<std::uint8_t>, std::uint8_t>;
+template class TableIterator<const Table<std::uint8_t>, const std::uint8_t>;
+
+template class bds::Table<std::int32_t>;
+template class bds::TableIterator<bds::Table<std::int32_t>, std::int32_t>;
+template class bds::TableIterator<const bds::Table<std::int32_t>,
+                                  const std::int32_t>;
+
+template class Table<float>;
+template class TableIterator<Table<float>, float>;
+template class TableIterator<const Table<float>, const float>;
+
+template <>
+Table<std::uint8_t> read<FileTypes::RAW_IMAGE, Table<std::uint8_t>>(
+    const std::string &filename, Triplet bounds) {
+    std::ifstream file(filename, std::ios::binary);
+    if (!file.good()) {
+        throw std::domain_error("File does not exist");
+    }
+    file.unsetf(std::ios::skipws);
+    std::streampos file_size = 0;
+    file.seekg(0, std::ios::end);
+    file_size = file.tellg();
+    file.seekg(0, std::ios::beg);
+    std::vector<std::uint8_t> bytes;
+    bytes.reserve(file_size);
+    bytes.insert(bytes.begin(), std::istream_iterator<std::uint8_t>(file),
+                 std::istream_iterator<std::uint8_t>());
+    file.close();
+    Table<std::uint8_t> table(std::move(bytes), bounds);
+    return table;
+}
+
+template <>
+void write<FileTypes::RAW_IMAGE, Table<std::uint8_t>>(
+    const std::string &filename, const Table<std::uint8_t> &table) {
+    std::ofstream file(filename, std::ios::out | std::ios::binary);
+    file.write(reinterpret_cast<const char *>(table.data()),  // NOLINT
+               static_cast<std::int64_t>(table.size()));
+    file.close();
+}
+
+void BMP::read(const std::string &fname) {  // NOLINT
+    std::ifstream inp{fname, std::ios_base::binary};
+
+    if (inp) {  // NOLINT
+
+        inp.read(reinterpret_cast<char *>(&file_header_),  // NOLINT
+                 sizeof(file_header_));
+
+        if (file_header_.file_type_ != 0x4D42) {  // NOLINT
+            throw std::runtime_error("Error! Unrecognized file format.");
+        }
+        inp.read(reinterpret_cast<char *>(&bmp_info_header_),  // NOLINT
+                 sizeof(bmp_info_header_));
+        if (bmp_info_header_.bit_count_ == 32) {  // NOLINT
+            if (bmp_info_header_.size_ >=
+                (sizeof(BMPInfoHeader) + sizeof(BMPColorHeader))) {
+                inp.read(
+                    reinterpret_cast<char *>(&bmp_color_header_),  // NOLINT
+                    sizeof(bmp_color_header_));
+            } else {
+                throw std::runtime_error("Error! Unrecognized file format.");
+            }
+        }
+        if (bmp_info_header_.bit_count_ == 8) {  // NOLINT
+            std::uint32_t count =
+                sizeof(file_header_) + sizeof(bmp_info_header_);
+            inp.seekg(count, std::ifstream::beg);
+            palitra_.resize(
+                1024);  // NOLINT // this is the standart size of palitra
+            inp.read(reinterpret_cast<char *>(palitra_.data()),  // NOLINT
+                     static_cast<std::streamsize>(palitra_.size()));
+        }
+        // Jump to the pixel data location
+        inp.seekg(file_header_.offset_data_, std::ifstream::beg);
+
+        if (bmp_info_header_.height_ < 0) {
+            throw std::runtime_error(
+                "The program can treat only BMP images with the origin in "
+                "the bottom left corner!");
+        }
+
+        data_.resize(bmp_info_header_.width_ * bmp_info_header_.height_ *
+                     bmp_info_header_.bit_count_ / 8);  // NOLINT
+
+        // Here we check if we need to take into account row padding
+        if (bmp_info_header_.height_ % 4 == 0)  // NOLINT
+        {
+            inp.read(reinterpret_cast<char *>(data_.data()),  // NOLINT
+                     static_cast<std::streamsize>(data_.size()));
+        } else {
+            row_stride_ = bmp_info_header_.width_ *
+                          bmp_info_header_.bit_count_ / 8;  // NOLINT
+            uint32_t new_stride = makeStrideAligned(4);
+            std::vector<char> padding_row(new_stride - row_stride_);
+
+            for (int y = 0; y < bmp_info_header_.height_; ++y) {
+                inp.read(reinterpret_cast<char *>(data_.data() +  // NOLINT
+                                                  row_stride_ * y),
+                         row_stride_);
+                inp.read(
+                    reinterpret_cast<char *>(padding_row.data()),  // NOLINT
+                    static_cast<std::streamsize>(padding_row.size()));
+            }
+        }
+    } else {
+        throw std::runtime_error("Unable to open the input image file.");
+    }
+    inp.close();
+}
+void BMP::write(const std::string &fname, const uint8_t *vec,
+                std::int64_t size) {
+    std::ofstream of{fname, std::ios_base::binary};
+    if (of) {
+        if (bmp_info_header_.bit_count_ == 8 ||   // NOLINT
+            bmp_info_header_.bit_count_ == 32) {  // NOLINT
+
+            if (bmp_info_header_.width_ % 4 == 0) {  // NOLINT
+                writeHeadersAndData(of, vec, size);
+            } else {
+                uint32_t new_stride = makeStrideAligned(4);
+                std::vector<uint8_t> padding_row(new_stride - row_stride_);
+
+                writeHeaders(of);
+                of.write(
+                    reinterpret_cast<const char *>(palitra_.data()),  // NOLINT
+                    static_cast<std::streamsize>(palitra_.size()));
+
+                for (uint32_t y = 0; y < bmp_info_header_.height_; ++y) {
+                    of.write(reinterpret_cast<const char *>(  // NOLINT
+                                 vec + row_stride_ * y),      // NOLINT
+                             row_stride_);
+                    of.write(reinterpret_cast<const char *>(  // NOLINT
+                                 padding_row.data()),
+                             static_cast<std::streamsize>(padding_row.size()));
+                }
+            }
+
+        } else if (bmp_info_header_.bit_count_ == 24) {  // NOLINT
+            if (bmp_info_header_.width_ % 4 == 0) {
+                writeHeadersAndData(of, vec, size);
+            } else {
+                uint32_t new_stride = makeStrideAligned(4);
+                std::vector<uint8_t> padding_row(new_stride - row_stride_);
+
+                writeHeaders(of);
+
+                for (uint32_t y = 0; y < bmp_info_header_.height_; ++y) {
+                    of.write(reinterpret_cast<const char *>(       // NOLINT
+                                 data_.data() + row_stride_ * y),  // NOLINT
+                             row_stride_);
+                    of.write(reinterpret_cast<const char *>(  // NOLINT
+                                 padding_row.data()),
+                             static_cast<std::streamsize>(padding_row.size()));
+                }
+            }
+        } else {
+            throw std::runtime_error(
+                "The program can treat only 24 or 32 bits per pixel BMP "
+                "files");
+        }
+    } else {
+        throw std::runtime_error("Unable to open the output image file.");
+    }
+    of.close();
+}
+
+void BMP::writeHeaders(std::ofstream &of) {
+    of.write(reinterpret_cast<const char *>(&file_header_),  // NOLINT
+             sizeof(file_header_));
+    of.write(reinterpret_cast<const char *>(&bmp_info_header_),  // NOLINT
+             sizeof(bmp_info_header_));
+
+    if (bmp_info_header_.bit_count_ == 32) {  // NOLINT
+
+        of.write(reinterpret_cast<const char *>(&bmp_color_header_),  // NOLINT
+                 sizeof(bmp_color_header_));
+    }
+}
+
+void BMP::writeHeadersAndData(std::ofstream &of, const uint8_t *vec,
+                              std::int64_t size) {
+    writeHeaders(of);
+    of.write(reinterpret_cast<const char *>(palitra_.data()),  // NOLINT
+             static_cast<std::streamsize>(palitra_.size()));
+    of.write(reinterpret_cast<const char *>(vec),  // NOLINT
+             static_cast<std::streamsize>(size));  // NOLINT
+}
+
+// Add 1 to the row_stride until it is divisible with align_stride
+[[nodiscard]] uint32_t BMP::makeStrideAligned(uint32_t align_stride) const {
+    uint32_t new_stride = row_stride_;
+    while (new_stride % align_stride != 0) {
+        new_stride++;
+    }
+    return new_stride;
+}
+
+void BMP::checkColorHeader(BMPColorHeader &bmp_color_header) {
+    BMPColorHeader expected_color_header;
+    if (expected_color_header.red_mask_ != bmp_color_header.red_mask_ ||
+        expected_color_header.blue_mask_ != bmp_color_header.blue_mask_ ||
+        expected_color_header.green_mask_ != bmp_color_header.green_mask_ ||
+        expected_color_header.alpha_mask_ != bmp_color_header.alpha_mask_) {
+        throw std::runtime_error(
+            "Unexpected color mask format! The program expects the pixel "
+            "data to be in the BGRA format");
+    }
+    if (expected_color_header.color_space_type_ !=
+        bmp_color_header.color_space_type_) {
+        throw std::runtime_error(
+            "Unexpected color space type! The program expects sRGB values");
+    }
+}
+
+template <>
+Table<std::uint8_t> read<FileTypes::BMP, Table<std::uint8_t>>(
+    const std::string &filename, Triplet bounds) {
+    class BMP bmp(filename + "0000.bmp");
+    std::vector<std::uint8_t> bytes(bmp.getData().size() * bounds.z());
+    std::int64_t j = 0;
+    std::string str;
+    std::string input;
+    for (int i = 0; i < bounds.z(); ++i) {
+        std::stringstream ss;
+        ss << std::setw(4) << std::setfill('0') << i;
+        str = ss.str();
+        input = filename + str + ".bmp";
+        bmp.read(input);
+        for (const auto &index : bmp.getData()) {
+            bytes[j++] = index;
+        }
+    }
+    Table<std::uint8_t> table(std::move(bytes), bounds);
+
+    return table;
+}
+
+template <>
+void write<FileTypes::BMP, Table<std::uint8_t>>(
+    const std::string &filename, const Table<std::uint8_t> &table) {
+    class BMP bmp("test/data/test_input/image_0000.bmp");
+    std::string str;
+    std::string output;
+    for (int i = 0; i < table.bounds().z(); ++i) {
+        std::stringstream ss;
+        ss << std::setw(4) << std::setfill('0') << i;
+        str = ss.str();
+        output = filename + str + ".bmp";
+
+        bmp.write(output,
+                  table.data() +  // NOLINT
+                      i * table.bounds().x() * table.bounds().y(),
+                  table.bounds().x() * table.bounds().y());
+    }
+}
+
+}  // namespace bds
